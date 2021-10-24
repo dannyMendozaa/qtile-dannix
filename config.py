@@ -45,58 +45,6 @@ mod1 = "mod1" # Alt key
 
 terminal = guess_terminal()
 
-def player(action):
-    def f(qtile):
-        player = sp.Popen(["dbus-send","--session","--dest=org.freedesktop.DBus",
-            "--type=method_call","--print-reply","/org/freedesktop/DBus",
-            "org.freedesktop.DBus.ListNames"],
-            universal_newlines=True,stdout=sp.PIPE,stderr=sp.PIPE)
-        player = sp.Popen(["grep","org.mpris"],
-                universal_newlines=True,stdin=player.stdout,stdout=sp.PIPE)
-        player = player.communicate()[0]
-        firefox = re.findall("[a-z]+\.[a-z]+[0-9]+",player)
-        spotify = re.findall("spotify",player)
-        if firefox and spotify:
-            player = ('dbus-send --print-reply --dest=org.mpris.MediaPlayer2.' + 
-                spotify[-1] + ' /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.')
-            qtile.cmd_spawn(player + action)
-            #return ("org.mpris.MediaPlayer2.spotify")
-        elif firefox:
-            player = ('dbus-send --print-reply --dest=org.mpris.MediaPlayer2.' + 
-                    firefox[-1] + ' /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.')
-            qtile.cmd_spawn(player + action)
-        else:
-            player = ('dbus-send --print-reply --dest=org.mpris.MediaPlayer2.' + 
-                spotify[-1] + ' /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.')
-            qtile.cmd_spawn(player + action)
-            #return ("org.mpris.MediaPlayer2." + player[-1])
-    return f
-#
-# def getplayer():
-#     def f(qtile):
-#         player = sp.Popen(["dbus-send","--session","--dest=org.freedesktop.DBus",
-#             "--type=method_call","--print-reply","/org/freedesktop/DBus",
-#             "org.freedesktop.DBus.ListNames"],
-#             universal_newlines=True,stdout=sp.PIPE,stderr=sp.PIPE)
-#         player = sp.Popen(["grep","org.mpris"],
-#                 universal_newlines=True,stdin=player.stdout,stdout=sp.PIPE)
-#         #player = re.findall("firefox\.[a-z]+[0-9]+",player.communicate()[0])
-#         player = player.communicate()[0]
-#         firefox = re.findall("[a-z]+\.[a-z]+[0-9]+",player)
-#         spotify = re.findall("spotify",player)
-#         #    qtile.cmd_spawn('org.mpris.MediaPlayer2.' + player[-1])
-#         #else:
-#         #    qtile.cmd_spawn('org.mpris.MediaPlayer2.spotify')
-#         if firefox and spotify:
-#             player = ('org.mpris.MediaPlayer2.' +  spotify[-1])
-#             #return ("org.mpris.MediaPlayer2.spotify")
-#         elif firefox:
-#             player ('org.mpris.MediaPlayer2.' + firefox[-1])
-#         else:
-#              player ('org.mpris.MediaPlayer2.' +  spotify[-1])
-
-# https://github.com/qtile/qtile-examples/blob/master/sweenu/bars.py
-
 keys = [
     Key([mod], "period", lazy.next_screen(),
         desc='Move focus to next monitor'),
@@ -118,11 +66,11 @@ keys = [
         desc="Decrease Volume"),
     Key([], "XF86AudioMute", lazy.spawn("amixer set Master toggle"),
         desc="Toggle Volume"),
-    Key([], 'XF86AudioPlay', lazy.function(player('PlayPause')),
+    Key([], 'XF86AudioPlay', lazy.spawn("playerctl play-pause"),
         desc="Play or Pause current player"),
-    Key([], 'XF86AudioNext', lazy.function(player('Next')),
+    Key([], 'XF86AudioNext', lazy.spawn("playerctl next"),
         desc="Next Track"),
-    Key([], 'XF86AudioPrev', lazy.function(player('Previous')),
+    Key([], 'XF86AudioPrev', lazy.spawn("playerctl previous"),
         desc="Previous Track"),
     Key([mod], "j", lazy.layout.down(),
         desc="Move focus down in stack pane"),
