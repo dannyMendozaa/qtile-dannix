@@ -223,6 +223,26 @@ sep = widget.Sep(
         size_percent=100
         )
 
+def window_class():
+    #x = sp.run('xdotool getactivewindow getwindowname',shell=True,stdout=sp.PIPE)
+    #x = sp.run('xdotool getactivewindow getwindowclassname',shell=True,stdout=sp.PIPE)
+    y = sp.run('xdotool getactivewindow getwindowname',shell=True,stdout=sp.PIPE)
+    #xy =  str(
+    #        x.stdout.decode('utf-8') + y.stdout.decode('utf-8')
+    #        ).replace('\n',':')
+    lista.append(y.stdout.decode('utf-8'))
+    pass
+
+def my_func(text):
+    #sub = re.sub('[a-zA-Z]+','Daniel',text)
+    dictionary = {'XTerm':'daniel@dannix','Spotify':'Spotify Premium'}
+    for key,value in dictionary.items():
+        #y = sp.run('xdotool getactivewindow getwindowname',shell=True,stdout=sp.PIPE)
+        #y = y.stdout.decode("utf-8")
+        if value in text:
+            text = text.replace(value,key)
+    return text
+
 ## Used in both monitors
 qtilelogo = "~/.config/qtile/baricons/qtilepng.png"
 qtile_mousecallbacks={
@@ -257,7 +277,8 @@ list_widgets = [
         mouse_callbacks = qtile_mousecallbacks,
     ),
     widget.GroupBox(
-        borderwidth = 0,
+        padding_x = 0,
+        borderwidth = 8,
         highlight_method="block",
         active = "000000",
         inactive = "000000",
@@ -368,17 +389,18 @@ list_widgets_1 = [
         mouse_callbacks = qtile_mousecallbacks,
     ),
     widget.GroupBox(
-        fontsize = 38,
+        padding_x = 0,
+        borderwidth = 6,
+        fontsize = 36,
         highlight_method="block",
-        borderwidth=3,
-        active = "2a4456",
-        inactive = "2a4456",
-        other_current_screen_border = "272935",
-        other_screen_border = "272935",
-        this_screen_border = "191a22",
-        this_current_screen_border = "99b3cc",
+        active = "bde7f2",
+        inactive = "bde7f2",
+        other_current_screen_border = "1c1b2200",
+        other_screen_border = "1c1b2200",
+        this_screen_border = "191a22ff",
+        this_current_screen_border = "5a66c7",
         hide_unused=True,
-        rounded = True,
+        rounded=False,
         ),
     prompt,
     widget.CurrentScreen(
@@ -386,15 +408,46 @@ list_widgets_1 = [
         active_text='·',
         inactive_text='·'
         ),
-    widget.WindowName(
+    widget.TaskList(
         **external_monitor,
-        for_current_screen = False,
-        format = '{name}',
-        fmt = '{}',
-        max_chars = 70,
+        highlight_method = "block",
+        background = "1c1b2200",
+        border = "5a66c7",
+        icon_size=36,
+        borderwidth=0,
+        margin_x=0,
+        margin_y=0,
+        spacing=0,
+        rounded=False,
+        txt_floating='🗗 ',
+        txt_maximized='🗖 ',
+        txt_minimized='🗕 ',
+        parse_text = my_func,
+        #parse_text = lambda string: string.replace(string,window_class()),
         ),
+    widget.Mpris2(
+        **external_monitor,
+        background='ebf1f4',
+        foreground='000000',
+        #background='55f287',
+        #foreground='000000',
+        fmt='{}',
+        stop_pause_text='',
+        display_metadata=['xesam:artist'],
+        #display_metadata=['xesam:title', 'xesam:album', 'xesam:artist'],
+        scroll_wait_intervals=1000,
+        objname='org.mpris.MediaPlayer2.spotify'),
+    #widget.Spacer(length=bar.STRETCH),
+    #widget.WindowName(
+    #    **external_monitor,
+    #    for_current_screen = False,
+    #    format = '{name}',
+    #    fmt = '{}',
+    #    max_chars = 60,
+    #    ),
     widget.Volume(
             **external_monitor,
+            emoji=False,
             fmt='{}'
             ),
     systray,
@@ -541,11 +594,11 @@ def moveclient(client):
 
 @hook.subscribe.client_new
 def spotify(window):
-    time.sleep(0.03)
+    time.sleep(0.05)
     wm_class = window.window.get_wm_class()[0]
     w_name = window.window.get_name()
     if wm_class ==  "spotify" or w_name == "Spotify Premium":
-        window.togroup("",switch_group=True)
+        window.togroup("",switch_group=True)
 
 @hook.subscribe.client_new
 def firefox_videos(window):
