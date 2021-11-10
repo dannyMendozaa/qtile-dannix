@@ -29,9 +29,9 @@ import subprocess as sp
 import dbus
 import re
 import time
+import socket
 
 from typing import List  # noqa: F401
-
 from libqtile import bar, layout, widget, hook, qtile
 from libqtile.config import Click, Drag, Group, Key, Screen, ScratchPad, \
         DropDown, KeyChord, Match
@@ -86,7 +86,7 @@ keys = [
         desc="flip windows"),
     Key([mod], "Tab", lazy.layout.next(),
         desc="Switch window focus to other pane(s) of stack"),
-    Key([mod], "h", lazy.hide_show_bar(),
+    Key([mod], "t", lazy.hide_show_bar(),
         desc="Hide or Show current screen bar"),
     Key([mod, "shift"], "space", lazy.layout.rotate(),
         desc="Swap panes of split stack"),
@@ -137,7 +137,8 @@ groups.append(
         ScratchPad("scratchpad", [
             # define a drop down terminal.
             DropDown("term",
-                "xterm -name FXTerm -fa 'Envy Code R' -fs 16",
+                #"xterm -name FXTerm -fa 'Envy Code R' -fs 16",
+                "alacritty --class TERM",
                 opacity=1.0,
                 width=0.8,
                 on_focus_lost_hide=True)])
@@ -149,16 +150,16 @@ for i, (name, kwargs) in enumerate(group_names, 1):
 
 layouts = [
     layout.Max(),
+    layout.MonadTall(
+        margin=12,
+        border_focus='a6d0e2',
+        border_width=4,
+        ),
     layout.MonadWide(
         margin=10,
         border_focus='a6d0e2',
         border_width=4,
         new_at_current=False,
-        ),
-    layout.MonadTall(
-        margin=12,
-        border_focus='a6d0e2',
-        border_width=4,
         ),
 ]
 
@@ -193,18 +194,20 @@ widget_defaults = dict(
 )
 
 external_monitor = dict(
+    #font='VictorMono Nerd Font',
     font='JetBrains Mono Light',
-    fontsize=28,
-    padding=3,
+    fontsize=30,
+    padding=2,
 )
 
 prompt_settings = dict(
     background='1c1b22a4',
-    cursor_color = "00ff00",
-    prompt = '{prompt} '.format(prompt="->"),
+    cursor_color = "ffffff",
+    prompt = '{prompt} '.format(prompt="\U0001F6F8"),
+    #prompt = "{0}@{1}: ".format(os.environ["USER"], socket.gethostname()),
     fmt = " {}",
     bell_style = 'visual',
-    visual_bell_color = 'ebf1f4',
+    visual_bell_color = 'afc1ca',
     ignore_dups_history=True,
 )
 
@@ -214,7 +217,7 @@ photo = r'[ -z $(wmctrl -l | grep -E "DM.Scre.*") ] && \
 n_mon = 32 if num_monitors > 1 else 30
 
 systray = widget.Systray(icon_size=n_mon)
-prompt = widget.Prompt(**external_monitor,**prompt_settings,) \
+prompt = widget.Prompt(**external_monitor,markup=False,**prompt_settings,) \
         if num_monitors > 1 else widget.Prompt(font='Iosevka',**prompt_settings)
 
 sep = widget.Sep(
@@ -234,8 +237,20 @@ def window_class():
     pass
 
 def my_func(text):
-    #sub = re.sub('[a-zA-Z]+','Daniel',text)
-    dictionary = {'XTerm':'daniel@dannix','Spotify':'Spotify Premium'}
+    # try:
+    #     sub = re.search('[.]*vim',text)
+    #     sub = sub.group(0)
+    # except AttributeError:
+    #     sub = ''
+    dictionary = {
+            '':'daniel@dannix:',
+            #'\U0001F996 Spotify':'Spotify',
+            'Spotify':'Spotify Premium',
+            '\U0001F4DDVIM':'vim',
+            '\U0001F427PACMAN':'pacman',
+            '\U0001F40DPYHON':'python'
+            }
+    # dictionary = {'':'daniel@dannix:','Spotify':'Spotify Premium'}
     for key,value in dictionary.items():
         #y = sp.run('xdotool getactivewindow getwindowname',shell=True,stdout=sp.PIPE)
         #y = y.stdout.decode("utf-8")
@@ -391,14 +406,14 @@ list_widgets_1 = [
     widget.GroupBox(
         padding_x = 0,
         borderwidth = 6,
-        fontsize = 36,
+        fontsize = 38,
         highlight_method="block",
-        active = "bde7f2",
-        inactive = "bde7f2",
+        active = "3a3c46",
+        inactive = "3a3c46",
         other_current_screen_border = "1c1b2200",
         other_screen_border = "1c1b2200",
         this_screen_border = "191a22ff",
-        this_current_screen_border = "5a66c7",
+        this_current_screen_border = "8a9ea8",
         hide_unused=True,
         rounded=False,
         ),
@@ -411,9 +426,10 @@ list_widgets_1 = [
     widget.TaskList(
         **external_monitor,
         highlight_method = "block",
+        foreground="05141b",
         background = "1c1b2200",
-        border = "5a66c7",
-        icon_size=36,
+        border = "8a9ea8",
+        icon_size=38,
         borderwidth=0,
         margin_x=0,
         margin_y=0,
@@ -582,7 +598,7 @@ def autostart():
 @hook.subscribe.client_new
 def moveclient(client):
     c = dict()
-    c[u""] = ["xterm"]
+    c[u""] = ["Alacritty","alacritty","xterm"]
     c[u""] = ["Navigator","Chromium","chromium"]
     c[u""] = ["pcmanfm","Pcmanfm","thunar"]
     c[u""] = ["org.pwmt.zathura","Zathura","gimp","Gimp"]
@@ -625,7 +641,7 @@ dgroups_key_binder = None
 dgroups_app_rules = []  # type: List
 follow_mouse_focus = True
 cursor_warp = False
-bring_front_click = True
+bring_front_click = False
 auto_fullscreen = True
 focus_on_window_activation = "focus"
 reconfigure_screens = True
