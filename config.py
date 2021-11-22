@@ -189,7 +189,7 @@ num_monitors = get_num_monitors()
 
 widget_defaults = dict(
     font='Noto Emoji Nerd Font',
-    fontsize=25,
+    fontsize=30,
     padding=3,
 )
 
@@ -286,251 +286,142 @@ walldict = dict(
     random_selection=True,
 )
 
-list_widgets = [
-    widget.Image(
-        filename = qtilelogo,
-        mouse_callbacks = qtile_mousecallbacks,
-    ),
-    widget.GroupBox(
-        padding_x = 0,
-        borderwidth = 8,
-        highlight_method="block",
-        active = "000000",
-        inactive = "000000",
-        other_current_screen_border = "1c1b22a4",
-        other_screen_border = "1c1b22a4",
-        this_screen_border = "9e9e9e",
-        this_current_screen_border = "ebf1f4",
-        hide_unused=True,
-        rounded = True,
+def f_widgets_external():
+    list_widgets_1 = [
+        widget.Image(
+            filename = qtilelogo,
+            mouse_callbacks = qtile_mousecallbacks,
         ),
-    widget.Backlight(
+        widget.GroupBox(
+            padding_x = 0,
+            borderwidth = 6,
+            fontsize = 38,
+            highlight_method="block",
+            active = "3a3c46",
+            inactive = "3a3c46",
+            other_current_screen_border = "1c1b2200",
+            other_screen_border = "1c1b2200",
+            this_screen_border = "191a22ff",
+            this_current_screen_border = "8a9ea8",
+            hide_unused=True,
+            rounded=False,
+            ),
+        widget.Backlight(
             backlight_name="intel_backlight",
             format="",
         ),
-    prompt if num_monitors < 2 else widget.TextBox(""),
-    widget.CurrentScreen(
-        **external_monitor,
-        active_text='·',
-        inactive_text='·'
-        ),
-    widget.WindowName(
-        font='Iosevka',
-        foreground='f4f5f6',
-        for_current_screen = False,
-        format = '{name}',
-        fmt = '{}',
-        max_chars = 55,
-        ),
-    widget.Chord(
-        chords_colors={
-            'launch': ("#ff0000", "#000000")
-        },
-        font='ShureTechMono Nerd Font',
-        fontsize=22,
-        foreground="dedcd7",
-        name_transform=lambda name: name.upper(),
-    ),
-    widget.Volume(
-            font='Iosevka',
-            fontsize = 24,
+        prompt,
+        widget.CurrentScreen(
+            **external_monitor,
+            active_text='·',
+            inactive_text='·'
+            ),
+        widget.TaskList(
+            **external_monitor,
+            highlight_method = "block",
+            foreground="05141b",
+            background = "1c1b2200",
+            border = "8a9ea8",
+            icon_size=38,
+            borderwidth=0,
+            margin_x=0,
+            margin_y=0,
+            spacing=0,
+            rounded=False,
+            txt_floating='🗗 ',
+            txt_maximized='🗖 ',
+            txt_minimized='🗕 ',
+            parse_text = my_func,
+            #parse_text = lambda string: string.replace(string,window_class()),
+            ),
+        widget.Mpris2(
+            **external_monitor,
+            background='ebf1f4',
+            foreground='000000',
+            #background='55f287',
+            #foreground='000000',
             fmt='{}',
-            ),
-    systray if num_monitors < 2 else widget.TextBox(""),
-    widget.Image(
-        filename=screenshot,
-        mouse_callbacks=screenshot_mousecallbacks,
-    ),
-    widget.Wallpaper(
-        **walldict,
-        fontsize=26,
-    ),
-    widget.Clock(
-        background='ebf1f4',
-        foreground='000000',
-        font='Iosevka',
-        fontsize=24,
-        format='%d/%m/%Y %H:%M',
-        mouse_callbacks={
-            'Button1': lambda: qtile.cmd_spawn(
-                'notify-send -t 0 -u normal "$(cal -n 9)"',
-                shell=True),
-            'Button3': lambda: qtile.cmd_spawn(
-                'pkill dunst',
-                shell=True),
-            }
+            stop_pause_text='',
+            display_metadata=['xesam:artist'],
+            #display_metadata=['xesam:title', 'xesam:album', 'xesam:artist'],
+            scroll_wait_intervals=-1,
+            objname='org.mpris.MediaPlayer2.spotify'),
+        widget.Volume(
+                **external_monitor,
+                emoji=False,
+                fmt='{}'
+                ),
+        systray,
+        widget.Image(
+            filename=screenshot,
+            mouse_callbacks=screenshot_mousecallbacks,
         ),
-    widget.WidgetBox(
-        close_button_location="right",
-        text_open="",
-        text_closed="",
-        foreground="05141b",
-        background="8a9ea8",
-        widgets=[
-        widget.TextBox(
-            font='Iosevka',
-            fontsize=24,
-            foreground="282a36",
-            background="bd93f9",
-            text="Exit",
-            mouse_callbacks={'Button1':
-                lambda: qtile.cmd_shutdown()},
+        widget.Wallpaper(
+            **walldict,
+        ),
+        widget.Clock(
+            **external_monitor,
+            background='ebf1f4',
+            foreground='000000',
+            format='%d/%m/%Y %H:%M',
+            mouse_callbacks={
+                'Button1': lambda: qtile.cmd_spawn(
+                    'notify-send -t 0 -u normal "$(cal -n 1)"',
+                    shell=True),
+                'Button3': lambda: qtile.cmd_spawn(
+                    'pkill dunst',
+                    shell=True),
+                }
             ),
-        widget.TextBox(
-            font='Iosevka',
-            fontsize=24,
-            text="Reboot",
-            foreground="282a36",
-            background="ff5555",
-            mouse_callbacks={'Button1':
-                lambda: qtile.cmd_spawn("poweroff")}
-            ),
-        widget.TextBox(
-            font='Iosevka',
-            fontsize=24,
-            text="Poweroff",
-            foreground="282a36",
-            background="f1fa8c",
-            mouse_callbacks={'Button1':
-                lambda: qtile.cmd_spawn("poweroff")}
-            ),
-        ]
-    ),
-]
+        widget.WidgetBox(
+            close_button_location="right",
+            text_open="",
+            text_closed="",
+            foreground="05141b",
+            background="8a9ea8",
+            fontsize=34,
+            widgets=[
+            widget.TextBox(
+                **external_monitor,
+                foreground="282a36",
+                background="bd93f9",
+                text="Exit",
+                mouse_callbacks={'Button1':
+                    lambda: qtile.cmd_shutdown()},
+                ),
+            widget.TextBox(
+                **external_monitor,
+                text="Reboot",
+                foreground="282a36",
+                background="ff5555",
+                mouse_callbacks={'Button1':
+                    lambda: qtile.cmd_spawn("reboot")}
+                ),
+            widget.TextBox(
+                **external_monitor,
+                text="PowerOff",
+                foreground="282a36",
+                background="f1fa8c",
+                mouse_callbacks={'Button1':
+                    lambda: qtile.cmd_spawn("poweroff")}
+                ),
+            ]
+        ),
+    ]
+    return list_widgets_1
 
-list_widgets_1 = [
-    widget.Image(
-        filename = qtilelogo,
-        mouse_callbacks = qtile_mousecallbacks,
-    ),
-    widget.GroupBox(
-        padding_x = 0,
-        borderwidth = 6,
-        fontsize = 38,
-        highlight_method="block",
-        active = "3a3c46",
-        inactive = "3a3c46",
-        other_current_screen_border = "1c1b2200",
-        other_screen_border = "1c1b2200",
-        this_screen_border = "191a22ff",
-        this_current_screen_border = "8a9ea8",
-        hide_unused=True,
-        rounded=False,
-        ),
-    prompt,
-    widget.CurrentScreen(
-        **external_monitor,
-        active_text='·',
-        inactive_text='·'
-        ),
-    widget.TaskList(
-        **external_monitor,
-        highlight_method = "block",
-        foreground="05141b",
-        background = "1c1b2200",
-        border = "8a9ea8",
-        icon_size=38,
-        borderwidth=0,
-        margin_x=0,
-        margin_y=0,
-        spacing=0,
-        rounded=False,
-        txt_floating='🗗 ',
-        txt_maximized='🗖 ',
-        txt_minimized='🗕 ',
-        parse_text = my_func,
-        #parse_text = lambda string: string.replace(string,window_class()),
-        ),
-    widget.Mpris2(
-        **external_monitor,
-        background='ebf1f4',
-        foreground='000000',
-        #background='55f287',
-        #foreground='000000',
-        fmt='{}',
-        stop_pause_text='',
-        display_metadata=['xesam:artist'],
-        #display_metadata=['xesam:title', 'xesam:album', 'xesam:artist'],
-        scroll_wait_intervals=1000,
-        objname='org.mpris.MediaPlayer2.spotify'),
-    #widget.Spacer(length=bar.STRETCH),
-    #widget.WindowName(
-    #    **external_monitor,
-    #    for_current_screen = False,
-    #    format = '{name}',
-    #    fmt = '{}',
-    #    max_chars = 60,
-    #    ),
-    widget.Volume(
-            **external_monitor,
-            emoji=False,
-            fmt='{}'
-            ),
-    systray,
-    widget.Image(
-        filename=screenshot,
-        mouse_callbacks=screenshot_mousecallbacks,
-    ),
-    widget.Wallpaper(
-        **walldict,
-        fontsize=34,
-    ),
-    widget.Clock(
-        **external_monitor,
-        background='ebf1f4',
-        foreground='000000',
-        format='%d/%m/%Y %H:%M',
-        mouse_callbacks={
-            'Button1': lambda: qtile.cmd_spawn(
-                'notify-send -t 0 -u normal "$(cal -n 9)"',
-                shell=True),
-            'Button3': lambda: qtile.cmd_spawn(
-                'pkill dunst',
-                shell=True),
-            }
-        ),
-    widget.WidgetBox(
-        close_button_location="right",
-        text_open="",
-        text_closed="",
-        foreground="05141b",
-        background="8a9ea8",
-        fontsize=34,
-        widgets=[
-        widget.TextBox(
-            **external_monitor,
-            foreground="282a36",
-            background="bd93f9",
-            text="Exit",
-            mouse_callbacks={'Button1':
-                lambda: qtile.cmd_shutdown()},
-            ),
-        widget.TextBox(
-            **external_monitor,
-            text="Reboot",
-            foreground="282a36",
-            background="ff5555",
-            mouse_callbacks={'Button1':
-                lambda: qtile.cmd_spawn("reboot")}
-            ),
-        widget.TextBox(
-            **external_monitor,
-            text="PowerOff",
-            foreground="282a36",
-            background="f1fa8c",
-            mouse_callbacks={'Button1':
-                lambda: qtile.cmd_spawn("poweroff")}
-            ),
-        ]
-    ),
-]
+internal = f_widgets_external()
+del internal[-5]
+external = f_widgets_external()
+del external[2]
 
 screens = [
     Screen(
         top=bar.Bar(
-            list_widgets,
-            30,
-            background='1c1b22a4',
+            external,
+            40,
+            #background='1c1b22a4',
+            background='272935a4',
             margin=[0, 0, 0, 0],
             opacity=1,
         ),
@@ -542,7 +433,7 @@ if num_monitors > 1:
         screens.append(
             Screen(
                 top=bar.Bar(
-                    list_widgets_1,  # second monitor widgets
+                    internal,  # second monitor widgets
                     40,
                     background='272935a4',
                     margin=[0, 0, 0, 0],
@@ -550,7 +441,6 @@ if num_monitors > 1:
                 ),
             )
         )
-
 
 # Drag floating layouts.
 mouse = [
@@ -589,6 +479,22 @@ floating_layout = layout.Floating(
     Match(title='pinentry'),  # GPG key password entry
     Match(title='gtk_calc'),  # Python  GTK calculators
 ])
+
+@hook.subscribe.startup
+def startup():
+    #xr = '''
+    #xrandr --fbmm 3627x2040 --output HDMI1 --pos 1707x0 --mode
+    #1920x1080_60.00 --scale 1x1 --output eDP1 --primary 
+    #--pos 0x0 --mode 1366x768 --scale 1.25x1.25
+    #'''
+    xr = '''
+    xrandr --output eDP1 --panning 1920x1080_60.00 
+    --scale 1.4055636896046853x1.40625 --dpi 192
+    --pos 0x0 --output HDMI1 --mode 1920x1080_60.00 
+    --panning 1920x1080+1920+0 --primary
+    '''
+    if num_monitors > 1:
+        sp.call(xr.split())
 
 @hook.subscribe.startup_once
 def autostart():
