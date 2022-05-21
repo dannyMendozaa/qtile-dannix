@@ -60,9 +60,9 @@ keys = [
         desc="Increase the bright"),
     Key([], "XF86MonBrightnessDown", lazy.spawn("xbacklight -dec 2"),
         desc="Decrease the bright"),
-    Key([], "XF86AudioRaiseVolume", lazy.spawn("amixer set Master 5%+"),
+    Key([], "XF86AudioRaiseVolume", lazy.spawn("amixer set Master 4%+"),
         desc="Increase Volume"),
-    Key([], "XF86AudioLowerVolume", lazy.spawn("amixer set Master 5%-"),
+    Key([], "XF86AudioLowerVolume", lazy.spawn("amixer set Master 4%-"),
         desc="Decrease Volume"),
     Key([], "XF86AudioMute", lazy.spawn("amixer set Master toggle"),
         desc="Toggle Volume"),
@@ -82,10 +82,10 @@ keys = [
     Key([mod, "shift"], "l", lazy.layout.swap_right()),
     Key([mod, "shift"], "j", lazy.layout.shuffle_down()),
     Key([mod, "shift"], "k", lazy.layout.shuffle_up()),
-    Key([mod, "control"], "space", lazy.layout.flip(),
+    Key(["control"], "space", lazy.layout.flip(),
         desc="flip windows"),
     Key([mod], "Tab", lazy.layout.next(),
-        desc="Switch window focus to other pane(s) of stack"),
+        desc="Switch window focus to oither pane(s) of stack"),
     Key([mod], "t", lazy.hide_show_bar(),
         desc="Hide or Show current screen bar"),
     Key([mod, "shift"], "space", lazy.layout.rotate(),
@@ -124,12 +124,14 @@ keys = [
 
 
 group_names = [
-        (u"", {'layout': 'monadwide'}),
-        (u"", {'layout': 'max'}),
-        (u"", {'layout': 'monadtall'}),
-        (u"", {'layout': 'max'}),
-        (u"", {'layout': 'floating'}),
-        (u"", {'layout': 'max'}),
+        (u"", {'layout': 'monadwide'}),
+        #(u"", {'layout': 'monadwide'}),
+        (u"", {'layout': 'max'}),
+        #(u"", {'layout': 'max'}),
+        (u"", {'layout': 'monadtall'}),
+        (u"", {'layout': 'max'}),
+        (u"", {'layout': 'floating'}),
+        (u"", {'layout': 'max'}),
 ]
 
 groups = [Group(name, **kwargs) for name, kwargs in group_names]
@@ -151,14 +153,14 @@ for i, (name, kwargs) in enumerate(group_names, 1):
 layouts = [
     layout.Max(),
     layout.MonadTall(
-        margin=12,
+        margin=10,
         border_focus='a6d0e2',
-        border_width=4,
+        border_width=6,
         ),
     layout.MonadWide(
         margin=10,
         border_focus='a6d0e2',
-        border_width=4,
+        border_width=6,
         new_at_current=False,
         ),
 ]
@@ -189,22 +191,23 @@ num_monitors = get_num_monitors()
 
 widget_defaults = dict(
     font='Noto Emoji Nerd Font',
-    fontsize=30,
+    fontsize=44,
     padding=3,
 )
 
 external_monitor = dict(
     #font='VictorMono Nerd Font',
-    font='JetBrains Mono Light',
-    fontsize=30,
+    #font='JetBrains Mono Light',
+    font='Iosevka',
+    fontsize=50,
     padding=2,
 )
 
 prompt_settings = dict(
     background='1c1b22a4',
     cursor_color = "ffffff",
-    prompt = '{prompt} '.format(prompt="\U0001F6F8"),
-    #prompt = "{0}@{1}: ".format(os.environ["USER"], socket.gethostname()),
+    #prompt = '{prompt} '.format(prompt="\U0001F6F8"),
+    prompt = "{0}@{1}: ".format(os.environ["USER"], socket.gethostname()),
     fmt = " {}",
     bell_style = 'visual',
     visual_bell_color = 'afc1ca',
@@ -214,7 +217,7 @@ prompt_settings = dict(
 photo = r'[ -z $(wmctrl -l | grep -E "DM.Scre.*") ] && \
         ~/Documents/Bash/Screenshot-tool-linux/screenShot'
 
-n_mon = 32 if num_monitors > 1 else 30
+n_mon = 55 if num_monitors > 1 else 45
 
 systray = widget.Systray(icon_size=n_mon)
 prompt = widget.Prompt(**external_monitor,markup=False,**prompt_settings,) \
@@ -226,46 +229,33 @@ sep = widget.Sep(
         size_percent=100
         )
 
-def window_class():
-    #x = sp.run('xdotool getactivewindow getwindowname',shell=True,stdout=sp.PIPE)
-    #x = sp.run('xdotool getactivewindow getwindowclassname',shell=True,stdout=sp.PIPE)
-    y = sp.run('xdotool getactivewindow getwindowname',shell=True,stdout=sp.PIPE)
-    #xy =  str(
-    #        x.stdout.decode('utf-8') + y.stdout.decode('utf-8')
-    #        ).replace('\n',':')
-    lista.append(y.stdout.decode('utf-8'))
-    pass
-
 def my_func(text):
-    # try:
-    #     sub = re.search('[.]*vim',text)
-    #     sub = sub.group(0)
-    # except AttributeError:
-    #     sub = ''
+    '''Used in TaskList to replace certain task names as vim, spotify, etc.'''
+    #for string in [' - ','Mozilla Firefox','VIM']:
+    #    text = text.replace(string,"")
+    #py = str(re.findall("[a-zA-Z0-9]*.py",text)[0])
     dictionary = {
-            '':'daniel@dannix:',
-            #'\U0001F996 Spotify':'Spotify',
-            'Spotify':'Spotify Premium',
-            '\U0001F4DDVIM':'vim',
-            '\U0001F427PACMAN':'pacman',
-            '\U0001F40DPYHON':'python'
+            ' @ ':'daniel@dannix:',
+            'Spotify':'Spotify',
+            #'👨‍🎤Spotify':'Spotify',
+            '':'— Mozilla Firefox',
+            ' \U0001F4DDVIMROOT':'svim',
+            ' \U0001F4DDVIM':' - VIM',
+            ' \U0001F427PACMAN':'pacman',
+            #' \U0001F40D' + str(re.findall("[a-zA-Z0-9]*.py",text)[0]):str(re.findall("[a-zA-Z0-9]*.py",text)[0])
+            #' \U0001F4DDPYTHON':py,
             }
-    # dictionary = {'':'daniel@dannix:','Spotify':'Spotify Premium'}
     for key,value in dictionary.items():
-        #y = sp.run('xdotool getactivewindow getwindowname',shell=True,stdout=sp.PIPE)
-        #y = y.stdout.decode("utf-8")
         if value in text:
             text = text.replace(value,key)
     return text
 
 ## Used in both monitors
-qtilelogo = "~/.config/qtile/baricons/qtilepng.png"
+qtilelogo = "~/.config/qtile/baricons/qtilelogo"
 qtile_mousecallbacks={
-    'Button1': lambda: qtile.cmd_spawn(
-        "rofi -combi-modi window,drun,ssh  -show combi"),
-    'Button2': lambda: qtile.cmd_spawn(
+    'Button1': lambda: qtile.cmd_findwindow(),
+    'Button3': lambda: qtile.cmd_spawn(
         "qtile cmd-obj -o window -f toggle_minimize"),
-    'Button3': lambda: qtile.cmd_findwindow(),
     'Button4': lambda: qtile.cmd_spawn(
         "qtile cmd-obj -o window -f down_opacity"),
     'Button5': lambda: qtile.cmd_spawn(
@@ -286,6 +276,10 @@ walldict = dict(
     random_selection=True,
 )
 
+icon = '/home/daniel/.local/share/icons/'\
+        + 'Nordic-Darker/apps/scalable/Calendar.svg'
+print(icon)
+
 def f_widgets_external():
     list_widgets_1 = [
         widget.Image(
@@ -293,16 +287,17 @@ def f_widgets_external():
             mouse_callbacks = qtile_mousecallbacks,
         ),
         widget.GroupBox(
-            padding_x = 0,
-            borderwidth = 6,
-            fontsize = 38,
-            highlight_method="block",
-            active = "3a3c46",
-            inactive = "3a3c46",
-            other_current_screen_border = "1c1b2200",
-            other_screen_border = "1c1b2200",
-            this_screen_border = "191a22ff",
-            this_current_screen_border = "8a9ea8",
+            margin_y = 5,
+            borderwidth = 8,
+            fontsize = 50,
+            highlight_method="line",
+            highlight_color = ['005590'],
+            active = "ffffff",
+            inactive = "ffffff",
+            other_current_screen_border = "2980B900",
+            other_screen_border = "B5B5B8",
+            this_screen_border = "B5B5B8",
+            this_current_screen_border = "005590",
             hide_unused=True,
             rounded=False,
             ),
@@ -319,20 +314,20 @@ def f_widgets_external():
         widget.TaskList(
             **external_monitor,
             highlight_method = "block",
-            foreground="05141b",
+            foreground="ffffff",
             background = "1c1b2200",
-            border = "8a9ea8",
-            icon_size=38,
+            border = "005590",
+            #icon_size=38,
+            icon_size=60,
             borderwidth=0,
             margin_x=0,
             margin_y=0,
-            spacing=0,
+            spacing=20,
             rounded=False,
             txt_floating='🗗 ',
             txt_maximized='🗖 ',
-            txt_minimized='🗕 ',
+            txt_minimized='',
             parse_text = my_func,
-            #parse_text = lambda string: string.replace(string,window_class()),
             ),
         widget.Mpris2(
             **external_monitor,
@@ -341,7 +336,7 @@ def f_widgets_external():
             #background='55f287',
             #foreground='000000',
             fmt='{}',
-            stop_pause_text='',
+            stop_pause_text='',
             display_metadata=['xesam:artist'],
             #display_metadata=['xesam:title', 'xesam:album', 'xesam:artist'],
             scroll_wait_intervals=-1,
@@ -366,7 +361,9 @@ def f_widgets_external():
             format='%d/%m/%Y %H:%M',
             mouse_callbacks={
                 'Button1': lambda: qtile.cmd_spawn(
-                    'notify-send -t 0 -u normal "$(cal -n 1)"',
+                    f'notify-send \
+                        -i {icon} \
+                        -t 10000 -u normal "$(cal -n 1)"',
                     shell=True),
                 'Button3': lambda: qtile.cmd_spawn(
                     'pkill dunst',
@@ -379,7 +376,8 @@ def f_widgets_external():
             text_closed="",
             foreground="05141b",
             background="8a9ea8",
-            fontsize=34,
+            # fontsize=34,
+            fontsize=60,
             widgets=[
             widget.TextBox(
                 **external_monitor,
@@ -410,17 +408,17 @@ def f_widgets_external():
     ]
     return list_widgets_1
 
-internal = f_widgets_external()
-del internal[-5]
-external = f_widgets_external()
-del external[2]
+primary = f_widgets_external()
+if num_monitors > 1:
+    del primary[2]
+secondary = f_widgets_external()
+del secondary[-5]
 
 screens = [
     Screen(
         top=bar.Bar(
-            external,
-            40,
-            #background='1c1b22a4',
+            primary,
+            65,
             background='272935a4',
             margin=[0, 0, 0, 0],
             opacity=1,
@@ -433,8 +431,8 @@ if num_monitors > 1:
         screens.append(
             Screen(
                 top=bar.Bar(
-                    internal,  # second monitor widgets
-                    40,
+                    secondary,  # second monitor widgets
+                    65,
                     background='272935a4',
                     margin=[0, 0, 0, 0],
                     opacity=1,
@@ -463,6 +461,8 @@ floating_layout = layout.Floating(
     Match(wm_class='ssh-askpass'),  # ssh-askpass
     Match(wm_class='confirm'),
     Match(wm_class='feh'),
+    Match(wm_class='gl'), # mpv
+    Match(wm_class='mpv'), # mpv
     Match(wm_class='xcalc'),
     Match(wm_class='sxiv'),
     Match(wm_class='ocs-url'),
@@ -482,19 +482,27 @@ floating_layout = layout.Floating(
 
 @hook.subscribe.startup
 def startup():
-    #xr = '''
-    #xrandr --fbmm 3627x2040 --output HDMI1 --pos 1707x0 --mode
-    #1920x1080_60.00 --scale 1x1 --output eDP1 --primary 
-    #--pos 0x0 --mode 1366x768 --scale 1.25x1.25
-    #'''
     xr = '''
-    xrandr --output eDP1 --panning 1920x1080_60.00 
-    --scale 1.4055636896046853x1.40625 --dpi 192
+    xrandr --dpi 192 --output eDP1 --mode 1366x768 
+    --panning 1920x1080_60.00 --scale 1.4055636896046853x1.40625 
     --pos 0x0 --output HDMI1 --mode 1920x1080_60.00 
     --panning 1920x1080+1920+0 --primary
     '''
+    # xr = '''
+    # xrandr --dpi 192 --output eDP1 --mode 1366x768 
+    # --panning 2732x1536+0+0 --scale 2x2
+    # --pos 0x0 --output HDMI1 --mode 1920x1080_60.00 
+    # --panning 1920x1080+2732+0 --primary
+    # '''
+    # xr = '''
+    # xrandr --dpi 192 --output eDP1 --mode 1366x768 
+    # --panning 2732x1536+0+0 --scale 2x2 --pos 0x0
+    # --output HDMI1 --mode 1920x1080_60.00 
+    # --panning 3072x1728+2732+0 --primary --scale 1.6x1.6
+    # '''
     if num_monitors > 1:
-        sp.call(xr.split())
+        pass
+        #sp.call(xr.split())
 
 @hook.subscribe.startup_once
 def autostart():
@@ -504,11 +512,11 @@ def autostart():
 @hook.subscribe.client_new
 def moveclient(client):
     c = dict()
-    c[u""] = ["Alacritty","alacritty","xterm"]
-    c[u""] = ["Navigator","Chromium","chromium"]
-    c[u""] = ["pcmanfm","Pcmanfm","thunar"]
-    c[u""] = ["org.pwmt.zathura","Zathura","gimp","Gimp"]
-    c[u""] = ["Spotify","spotify","Spotify Premium"]
+    c[u""] = ["Alacritty","alacritty","xterm"]
+    c[u""] = ["Navigator","Chromium","chromium"]
+    c[u""] = ["pcmanfm","Pcmanfm","thunar"]
+    c[u""] = ["org.pwmt.zathura","Zathura","gimp","Gimp"]
+    c[u""] = ["zoom ","Zoom"]
     wm_class = client.window.get_wm_class()[0]
     for k,v in c.items():
         if wm_class in c[k]:
@@ -516,11 +524,11 @@ def moveclient(client):
 
 @hook.subscribe.client_new
 def spotify(window):
-    time.sleep(0.05)
+    time.sleep(0.07)
     wm_class = window.window.get_wm_class()[0]
     w_name = window.window.get_name()
-    if wm_class ==  "spotify" or w_name == "Spotify Premium":
-        window.togroup("",switch_group=True)
+    if wm_class in ("spotify",) or w_name in ("Spotify",):
+        window.togroup("",switch_group=True)
 
 @hook.subscribe.client_new
 def firefox_videos(window):
@@ -546,7 +554,7 @@ def float_to_front(qtile):
 dgroups_key_binder = None
 dgroups_app_rules = []  # type: List
 follow_mouse_focus = True
-cursor_warp = False
+cursor_warp = True
 bring_front_click = False
 auto_fullscreen = True
 focus_on_window_activation = "focus"
