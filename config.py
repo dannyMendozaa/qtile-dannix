@@ -30,7 +30,6 @@ import dbus
 import re
 import time
 import socket
-
 from typing import List  # noqa: F401
 from libqtile import bar, layout, widget, hook, qtile
 from libqtile.config import Click, Drag, Group, Key, Screen, ScratchPad, \
@@ -39,6 +38,7 @@ from libqtile.lazy import lazy
 from libqtile.utils import guess_terminal
 from libqtile.widget import base
 from Xlib import display as xdisplay
+
 
 mod = "mod4" # Super Key
 mod1 = "mod1" # Alt key
@@ -125,9 +125,7 @@ keys = [
 
 group_names = [
         (u"", {'layout': 'monadwide'}),
-        #(u"", {'layout': 'monadwide'}),
         (u"", {'layout': 'max'}),
-        #(u"", {'layout': 'max'}),
         (u"", {'layout': 'monadtall'}),
         (u"", {'layout': 'max'}),
         (u"", {'layout': 'floating'}),
@@ -171,7 +169,6 @@ def get_num_monitors():
         display = xdisplay.Display()
         screen = display.screen()
         resources = screen.root.xrandr_get_screen_resources()
-
         for output in resources.outputs:
             monitor = display.xrandr_get_output_info(output, resources.config_timestamp)
             preferred = False
@@ -228,6 +225,32 @@ sep = widget.Sep(
         linewidth=0,
         size_percent=100
         )
+
+
+class SPOTIFY(base.InLoopPollText):
+
+    def __init__(self, **config):
+        base.InLoopPollText.__init__(self, **config)
+        self.update_interval = 0.2
+
+    def poll(self):
+        bus = dbus.SessionBus()
+        for service in bus.list_names():
+            if service.startswith('org.mpris.MediaPlayer2.'):
+                players = re.findall(r'\bf[irefox]*\b|\bs[potify]*\b',service)
+                p = players[0]
+                if re.search(p,service):
+                    player = dbus.SessionBus().get_object(service, '/org/mpris/MediaPlayer2')
+                    meta = dbus.Interface(player,
+                            dbus_interface='org.freedesktop.DBus.Properties')
+                    metas = meta.GetAll('org.mpris.MediaPlayer2.Player')
+                    if metas['PlaybackStatus'] == 'Playing':
+                        artist = f"{p.title()}: {metas['Metadata']['xesam:artist'][0]}"
+                        # track = f"{p.title()}: {metas['Metadata']['xesam:title']}"
+                        return artist
+
+        return f""
+
 
 def my_func(text):
     '''Used in TaskList to replace certain task names as vim, spotify, etc.'''
@@ -329,22 +352,14 @@ def f_widgets_external():
             txt_minimized='',
             parse_text = my_func,
             ),
-        widget.Mpris2(
-            **external_monitor,
-            background='ebf1f4',
-            foreground='000000',
-            #background='55f287',
-            #foreground='000000',
-            fmt='{}',
-            stop_pause_text='',
-            display_metadata=['xesam:artist'],
-            #display_metadata=['xesam:title', 'xesam:album', 'xesam:artist'],
-            scroll_wait_intervals=-1,
-            objname='org.mpris.MediaPlayer2.spotify'),
+        SPOTIFY(**external_monitor,
+                background = "272727",
+                ),
         widget.Volume(
                 **external_monitor,
                 emoji=False,
-                fmt='{}'
+                fmt='{}',
+                background="005590",
                 ),
         systray,
         widget.Image(
