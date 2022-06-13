@@ -1,3 +1,6 @@
 __pycache__
-mply.py
-xxx.py
+test.py
+*.mp4
+.cache*
+*.png
+danny.py

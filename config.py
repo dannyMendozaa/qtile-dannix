@@ -43,7 +43,8 @@ from Xlib import display as xdisplay
 mod = "mod4" # Super Key
 mod1 = "mod1" # Alt key
 
-terminal = guess_terminal()
+# terminal = guess_terminal()
+terminal = 'xterm'
 
 keys = [
     Key([mod], "period", lazy.next_screen(),
@@ -66,11 +67,14 @@ keys = [
         desc="Decrease Volume"),
     Key([], "XF86AudioMute", lazy.spawn("amixer set Master toggle"),
         desc="Toggle Volume"),
-    Key([], 'XF86AudioPlay', lazy.spawn("playerctl play-pause"),
+    Key([], 'XF86AudioPlay', lazy.spawn(
+        "playerctl --player=spotify,firefox play-pause"),
         desc="Play or Pause current player"),
-    Key([], 'XF86AudioNext', lazy.spawn("playerctl next"),
+    Key([], 'XF86AudioNext', lazy.spawn(
+        "playerctl --player=spotify,firefox next"),
         desc="Next Track"),
-    Key([], 'XF86AudioPrev', lazy.spawn("playerctl previous"),
+    Key([], 'XF86AudioPrev', lazy.spawn(
+        "playerctl --player=spotify,firefox previous"),
         desc="Previous Track"),
     Key([mod], "j", lazy.layout.down(),
         desc="Move focus down in stack pane"),
@@ -106,13 +110,16 @@ keys = [
     #    desc="Spawn a command using a prompt widget"),
     Key([mod], "d", lazy.spawncmd(),
         desc="Spawn a command using a prompt widget"),
-    KeyChord([mod], "r", [
-        Key([], "g", lazy.layout.grow()),
-        Key([], "s", lazy.layout.shrink()),
-        Key([], "n", lazy.layout.normalize()),
-        Key([], "m", lazy.layout.maximize())],
-        mode="Adjust"
-    ),
+    Key([mod, "control"], "j", lazy.layout.shrink(), desc="Grow window down"),
+    Key([mod, "control"], "k", lazy.layout.grow(), desc="Grow window up"),
+    Key([mod], "n", lazy.layout.reset(), desc="Reset all window sizes"),
+#    KeyChord([mod], "r", [
+#        Key([], "g", lazy.layout.grow()),
+#        Key([], "s", lazy.layout.shrink()),
+#        Key([], "n", lazy.layout.normalize()),
+#        Key([], "m", lazy.layout.maximize())],
+#        mode="Adjust"
+#    ),
 #    KeyChord([mod], "l", [
 #        Key([], "t", lazy.spawn("xterm")),
 #        Key([], "f", lazy.spawn("firefox")),
@@ -136,9 +143,9 @@ groups = [Group(name, **kwargs) for name, kwargs in group_names]
 groups.append(
         ScratchPad("scratchpad", [
             # define a drop down terminal.
-            DropDown("term",
-                #"xterm -name FXTerm -fa 'Envy Code R' -fs 16",
-                "alacritty --class TERM",
+            DropDown(
+                "term",
+                "xterm -name FXTerm -fa 'Envy Code R' -fs 16",
                 opacity=1.0,
                 width=0.8,
                 on_focus_lost_hide=True)])
@@ -152,12 +159,12 @@ layouts = [
     layout.Max(),
     layout.MonadTall(
         margin=10,
-        border_focus='a6d0e2',
+        border_focus='0E9BBB',
         border_width=6,
         ),
     layout.MonadWide(
         margin=10,
-        border_focus='a6d0e2',
+        border_focus='0E9BBB',
         border_width=6,
         new_at_current=False,
         ),
@@ -216,7 +223,10 @@ photo = r'[ -z $(wmctrl -l | grep -E "DM.Scre.*") ] && \
 
 n_mon = 55 if num_monitors > 1 else 45
 
-systray = widget.Systray(icon_size=n_mon)
+systray = widget.Systray(
+        icon_size=n_mon,
+        background='FFFFFF00',
+        foreground='000000')
 prompt = widget.Prompt(**external_monitor,markup=False,**prompt_settings,) \
         if num_monitors > 1 else widget.Prompt(font='Iosevka',**prompt_settings)
 
@@ -227,30 +237,109 @@ sep = widget.Sep(
         )
 
 
-class SPOTIFY(base.InLoopPollText):
+class MusicPlayer(base.InLoopPollText):
+
+    bus = dbus.SessionBus()
 
     def __init__(self, **config):
         base.InLoopPollText.__init__(self, **config)
-        self.update_interval = 0.2
+        self.update_interval = 0.5
+        self.add_callbacks({
+            'Button1': self.play_pause,
+            'Button3': self.record,
+            'Button4': self.prev,
+            'Button5': self.next
+        })
+
+    def get_player_metadata(self):
+        lst_players = list()
+        player_dict = dict()
+        for service in MusicPlayer.bus.list_names():
+            if service.startswith('org.mpris.MediaPlayer2.'):
+                lst_players.append(str(service))
+        len_lst_players = len(lst_players)
+        if len_lst_players:
+            for player in range(len_lst_players):
+                service = lst_players[player]
+                music_player = re.findall(r'\bf[irefox]*\b|\bs[potify]*\b',
+                        service)
+                player_meta = dbus.SessionBus().get_object(service,
+                        '/org/mpris/MediaPlayer2')
+                player_meta = dbus.Interface(player_meta,
+                        dbus_interface='org.freedesktop.DBus.Properties')
+                ctrl_player = dbus.Interface(player_meta,
+                        dbus_interface='org.mpris.MediaPlayer2.Player')
+                player_dict = {
+                        'PlayerMetadata': player_meta,
+                        'Control': ctrl_player,
+                        'Player': music_player[0].title()
+                        }
+                m_player = player_dict['Player']
+                if m_player == 'Spotify':
+                    m_player = ''
+                else:
+                    m_player = ''
+                meta = player_dict['PlayerMetadata']
+                metas = meta.GetAll('org.mpris.MediaPlayer2.Player')
+                sts_playback = metas['PlaybackStatus']
+                if sts_playback == 'Playing':
+                    artist = f"{metas['Metadata']['xesam:artist'][0]}"
+                    title = f"{metas['Metadata']['xesam:title']}"
+                    if artist:
+                        output = f"{m_player} [{artist}]"
+                    else:
+                        output = f"{m_player} [{title}]"
+                    player_dict['CurrentlyPlaying'] = output
+                    return player_dict
+                elif sts_playback == 'Paused' \
+                        and len_lst_players == player+1:
+                    output = f"{m_player} [PAUSED]"
+                    player_dict['CurrentlyPlaying'] = output
+                    return player_dict
+                elif len_lst_players < player+1:
+                    output = f"{m_player} [PAUSED]"
+                    player_dict['CurrentlyPlaying'] = output
+                    return player_dict
+        return player_dict
 
     def poll(self):
-        bus = dbus.SessionBus()
-        for service in bus.list_names():
-            if service.startswith('org.mpris.MediaPlayer2.'):
-                players = re.findall(r'\bf[irefox]*\b|\bs[potify]*\b',service)
-                p = players[0]
-                if re.search(p,service):
-                    player = dbus.SessionBus().get_object(service, '/org/mpris/MediaPlayer2')
-                    meta = dbus.Interface(player,
-                            dbus_interface='org.freedesktop.DBus.Properties')
-                    metas = meta.GetAll('org.mpris.MediaPlayer2.Player')
-                    if metas['PlaybackStatus'] == 'Playing':
-                        artist = f"{p.title()}: {metas['Metadata']['xesam:artist'][0]}"
-                        # track = f"{p.title()}: {metas['Metadata']['xesam:title']}"
-                        return artist
+        try:
+            track_playing = self.get_player_metadata()['CurrentlyPlaying']
+            track_playing = track_playing.replace('&','and')
+        except KeyError:
+            return ''
+        return track_playing
 
-        return f""
+    def play_pause(self):
+        player = self.get_player_metadata()['Control']
+        return player.PlayPause()
 
+    def next(self):
+        player = self.get_player_metadata()['Control']
+        return player.Next()
+
+    def prev(self):
+        player = self.get_player_metadata()['Control']
+        return player.Previous()
+
+    def record(self):
+        if self.poll().startswith(''):
+            record = sp.Popen(
+                    ['python',
+                        '/home/daniel/.config/qtile/yt_music_record.py'],
+                    stderr=sp.DEVNULL)
+            return
+
+        if self.poll().startswith(''):
+            record = sp.Popen(
+                    ['python',
+                        '/home/daniel/GitRepos/ATR/recording_spotify_track.py'],
+                    stderr=sp.DEVNULL)
+        return
+
+#print(MusicPlayer().get_player_metadata())
+#print(MusicPlayer().poll())
+#print(MusicPlayer().record())
 
 def my_func(text):
     '''Used in TaskList to replace certain task names as vim, spotify, etc.'''
@@ -258,15 +347,15 @@ def my_func(text):
     #    text = text.replace(string,"")
     #py = str(re.findall("[a-zA-Z0-9]*.py",text)[0])
     dictionary = {
-            ' @ ':'daniel@dannix:',
-            'Spotify':'Spotify',
-            #'👨‍🎤Spotify':'Spotify',
+            ' 👁️‍🗨️ ':'daniel@dannix:~/',
+            ' 🏠 ':'daniel@dannix:~',
+            '👨‍🎤Spotify':'Spotify',
             '':'— Mozilla Firefox',
             ' \U0001F4DDVIMROOT':'svim',
             ' \U0001F4DDVIM':' - VIM',
             ' \U0001F427PACMAN':'pacman',
-            #' \U0001F40D' + str(re.findall("[a-zA-Z0-9]*.py",text)[0]):str(re.findall("[a-zA-Z0-9]*.py",text)[0])
-            #' \U0001F4DDPYTHON':py,
+            # ' \U0001F40D' + str(re.findall(r"[a-zA-Z0-9]*.py",text)[0]):\
+            #        str(re.findall(r"[a-zA-Z0-9]*.py",text)[0])
             }
     for key,value in dictionary.items():
         if value in text:
@@ -284,6 +373,7 @@ qtile_mousecallbacks={
     'Button5': lambda: qtile.cmd_spawn(
         "qtile cmd-obj -o window -f up_opacity")
 }
+
 screenshot = "~/.config/qtile/baricons/retrocamera.png"
 screenshot_mousecallbacks={
     'Button1': lambda: qtile.cmd_spawn(
@@ -291,6 +381,7 @@ screenshot_mousecallbacks={
         shell=True,
         )
     }
+
 walldict = dict(
     wallpapers="~/Pictures/wallpapers",
     foreground="05141b",
@@ -301,10 +392,9 @@ walldict = dict(
 
 icon = '/home/daniel/.local/share/icons/'\
         + 'Nordic-Darker/apps/scalable/Calendar.svg'
-print(icon)
 
-def f_widgets_external():
-    list_widgets_1 = [
+def widgets():
+    list_widgets = [
         widget.Image(
             filename = qtilelogo,
             mouse_callbacks = qtile_mousecallbacks,
@@ -312,17 +402,18 @@ def f_widgets_external():
         widget.GroupBox(
             margin_y = 5,
             borderwidth = 8,
-            fontsize = 50,
+            fontsize = 54,
             highlight_method="line",
             highlight_color = ['005590'],
             active = "ffffff",
             inactive = "ffffff",
             other_current_screen_border = "2980B900",
-            other_screen_border = "B5B5B8",
-            this_screen_border = "B5B5B8",
+            other_screen_border = "87CEFAaa",
+            this_screen_border = "87CEFAaa",
             this_current_screen_border = "005590",
             hide_unused=True,
             rounded=False,
+            #visible_groups = [u""]
             ),
         widget.Backlight(
             backlight_name="intel_backlight",
@@ -338,9 +429,7 @@ def f_widgets_external():
             **external_monitor,
             highlight_method = "block",
             foreground="ffffff",
-            background = "1c1b2200",
             border = "005590",
-            #icon_size=38,
             icon_size=60,
             borderwidth=0,
             margin_x=0,
@@ -352,16 +441,19 @@ def f_widgets_external():
             txt_minimized='',
             parse_text = my_func,
             ),
-        SPOTIFY(**external_monitor,
-                background = "272727",
-                ),
-        widget.Volume(
-                **external_monitor,
-                emoji=False,
-                fmt='{}',
-                background="005590",
-                ),
+        MusicPlayer(
+            font='TerminessTTF Nerd Font',
+            fontsize = 50,
+            background = "282C34",
+            foreground = "E4E4E4",
+            ),
         systray,
+        widget.Volume(
+            **external_monitor,
+            emoji=False,
+            fmt='{}',
+            background="005590",
+            ),
         widget.Image(
             filename=screenshot,
             mouse_callbacks=screenshot_mousecallbacks,
@@ -421,20 +513,21 @@ def f_widgets_external():
             ]
         ),
     ]
-    return list_widgets_1
+    return list_widgets
 
-primary = f_widgets_external()
+primary = widgets()
 if num_monitors > 1:
     del primary[2]
-secondary = f_widgets_external()
-del secondary[-5]
+secondary = widgets()
+del secondary[-6]
+secondary[-5],secondary[-3] = secondary[-3],secondary[-5]
 
 screens = [
     Screen(
         top=bar.Bar(
             primary,
             65,
-            background='272935a4',
+            background='27293566',
             margin=[0, 0, 0, 0],
             opacity=1,
         ),
@@ -446,9 +539,9 @@ if num_monitors > 1:
         screens.append(
             Screen(
                 top=bar.Bar(
-                    secondary,  # second monitor widgets
+                    secondary,  # second monitor [laptop] 
                     65,
-                    background='272935a4',
+                    background='27293566',
                     margin=[0, 0, 0, 0],
                     opacity=1,
                 ),
@@ -465,8 +558,8 @@ mouse = [
 ]
 
 floating_layout = layout.Floating(
-    border_focus = 'f0f3f4',
-    border_width = 3,
+    border_focus = '8F3189',
+    border_width = 6,
     # Run the utility of `xprop` to see the wm class and name of an X client.
     float_rules=[
     *layout.Floating.default_float_rules,
@@ -476,8 +569,8 @@ floating_layout = layout.Floating(
     Match(wm_class='ssh-askpass'),  # ssh-askpass
     Match(wm_class='confirm'),
     Match(wm_class='feh'),
-    Match(wm_class='gl'), # mpv
-    Match(wm_class='mpv'), # mpv
+    #Match(wm_class='gl'), # mpv
+    #Match(wm_class='mpv'), # mpv
     Match(wm_class='xcalc'),
     Match(wm_class='sxiv'),
     Match(wm_class='ocs-url'),
@@ -497,12 +590,12 @@ floating_layout = layout.Floating(
 
 @hook.subscribe.startup
 def startup():
-    xr = '''
-    xrandr --dpi 192 --output eDP1 --mode 1366x768 
-    --panning 1920x1080_60.00 --scale 1.4055636896046853x1.40625 
-    --pos 0x0 --output HDMI1 --mode 1920x1080_60.00 
-    --panning 1920x1080+1920+0 --primary
-    '''
+    ## xr = '''
+    ## xrandr --dpi 192 --output eDP1 --mode 1366x768 
+    ## --panning 1920x1080_60.00 --scale 1.4055636896046853x1.40625 
+    ## --pos 0x0 --output HDMI1 --mode 1920x1080_60.00 
+    ## --panning 1920x1080+1920+0 --primary
+    ## '''
     # xr = '''
     # xrandr --dpi 192 --output eDP1 --mode 1366x768 
     # --panning 2732x1536+0+0 --scale 2x2
@@ -537,6 +630,32 @@ def moveclient(client):
         if wm_class in c[k]:
             client.togroup(k,switch_group=True)
 
+###############################################################################
+#                          [START] STICKY WINDOW                              #
+###############################################################################
+zenity = ''
+@hook.subscribe.client_new
+def screenshot(window):
+    global zenity
+    wm_class = window.window.get_wm_class()[0]
+    w_name = window.window.get_name()
+    if wm_class in ("zenity","Zenity") or w_name in ("DM Screenshot Tool",):
+        zenity = window
+        return zenity
+
+@hook.subscribe.setgroup
+def move_zenity():
+    zenity.togroup(qtile.current_group.name, switch_group=True)
+
+@hook.subscribe.client_killed
+def killed(window):
+    global zenity
+    if window.name == 'DM Screenshot Tool':
+        del zenity
+###############################################################################
+#                            [END] STICKY WINDOW                              #
+###############################################################################
+
 @hook.subscribe.client_new
 def spotify(window):
     time.sleep(0.07)
@@ -549,9 +668,10 @@ def spotify(window):
 def firefox_videos(window):
     wm_class = window.window.get_wm_class()[0]
     w_name = window.window.get_name()
-    if wm_class ==  "Toolkit" and w_name == "Picture-in-Picture":
-        window.togroup("",switch_group=True)
-        window.toggle_maximize()
+    if wm_class == "Toolkit" and w_name == "Picture-in-Picture":
+        window.togroup("",switch_group=True)
+        window.toggle_fullscreen()
+        #window.toggle_maximize()
 
 @hook.subscribe.client_new
 def float_to_front(qtile):
@@ -570,9 +690,9 @@ dgroups_key_binder = None
 dgroups_app_rules = []  # type: List
 follow_mouse_focus = True
 cursor_warp = True
-bring_front_click = False
+bring_front_click = "floating_only",
 auto_fullscreen = True
-focus_on_window_activation = "focus"
+focus_on_window_activation = "smart"
 reconfigure_screens = True
 auto_minimize = True
 
