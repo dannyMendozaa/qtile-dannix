@@ -40,11 +40,29 @@ from libqtile.widget import base
 from Xlib import display as xdisplay
 
 
+## Commented lines from core.py
+## /usr/lib/python3.10/site-packages/libqtile/backend/x11/core.py
+## logger.exception("Got an exception in getting the window pid")
+## Commented lines from __init__.py
+## /usr/lib/python3.10/site-packages/xcffib/
+## raise ConnectionException(err)
+
 mod = "mod4" # Super Key
 mod1 = "mod1" # Alt key
 
 # terminal = guess_terminal()
 terminal = 'xterm'
+
+# Script to switch between HEADPHONES and SPEAKERS
+@lazy.function
+def change_audio(qtile):
+    qtile.cmd_spawn(os.path.expanduser("~/.local/bin/switch_audio_sink.sh"))
+
+@lazy.function
+def change_port_monitor(qtile):
+    # Change Monitor Port
+    qtile.cmd_spawn(os.path.expanduser("~/.local/bin/port_monitor.py"))
+
 
 keys = [
     Key([mod], "period", lazy.next_screen(),
@@ -61,12 +79,16 @@ keys = [
         desc="Increase the bright"),
     Key([], "XF86MonBrightnessDown", lazy.spawn("xbacklight -dec 2"),
         desc="Decrease the bright"),
+    Key([mod1, "control"], 'm', change_port_monitor,
+        desc="Change external monitor port DPI/HDMI"),
     Key([], "XF86AudioRaiseVolume", lazy.spawn("amixer set Master 4%+"),
         desc="Increase Volume"),
     Key([], "XF86AudioLowerVolume", lazy.spawn("amixer set Master 4%-"),
         desc="Decrease Volume"),
     Key([], "XF86AudioMute", lazy.spawn("amixer set Master toggle"),
         desc="Toggle Volume"),
+    Key([mod], 'a', change_audio,
+        desc="Switch between Headphones or Speakers"),
     Key([], 'XF86AudioPlay', lazy.spawn(
         "playerctl --player=spotify,firefox play-pause"),
         desc="Play or Pause current player"),
@@ -106,8 +128,6 @@ keys = [
             desc="Restart qtile"),
     Key([mod, "control"], "q", lazy.shutdown(),
             desc="Shutdown qtile"),
-    #Key([mod], "d", lazy.spawn("rofi -combi-modi window,drun,ssh  -show combi"),
-    #    desc="Spawn a command using a prompt widget"),
     Key([mod], "d", lazy.spawncmd(),
         desc="Spawn a command using a prompt widget"),
     Key([mod, "control"], "j", lazy.layout.shrink(), desc="Grow window down"),
@@ -130,12 +150,13 @@ keys = [
 ]
 
 
+#(u"", {'layout': 'floating'}),
 group_names = [
         (u"", {'layout': 'monadwide'}),
         (u"", {'layout': 'max'}),
         (u"", {'layout': 'monadtall'}),
-        (u"", {'layout': 'max'}),
-        (u"", {'layout': 'floating'}),
+        (u"", {'layout': 'max'}),
+        (u"", {'layout': 'max'}),
         (u"", {'layout': 'max'}),
 ]
 
@@ -261,8 +282,8 @@ class MusicPlayer(base.InLoopPollText):
         if len_lst_players:
             for player in range(len_lst_players):
                 service = lst_players[player]
-                music_player = re.findall(r'\bf[irefox]*\b|\bs[potify]*\b',
-                        service)
+                music_player = re.findall(
+                        r'\bf[irefox]*\b|\bs[potify]*\b',service)
                 player_meta = dbus.SessionBus().get_object(service,
                         '/org/mpris/MediaPlayer2')
                 player_meta = dbus.Interface(player_meta,
@@ -306,7 +327,8 @@ class MusicPlayer(base.InLoopPollText):
         try:
             track_playing = self.get_player_metadata()['CurrentlyPlaying']
             track_playing = track_playing.replace('&','and')
-        except KeyError:
+        #except KeyError:
+        except:
             return ''
         return track_playing
 
@@ -400,7 +422,7 @@ def widgets():
             mouse_callbacks = qtile_mousecallbacks,
         ),
         widget.GroupBox(
-            margin_y = 5,
+            margin_y = 6,
             borderwidth = 8,
             fontsize = 54,
             highlight_method="line",
@@ -453,6 +475,11 @@ def widgets():
             emoji=False,
             fmt='{}',
             background="005590",
+            mouse_callbacks={
+                'Button3': lambda: qtile.cmd_spawn(
+                    os.path.expanduser("~/.local/bin/switch_audio_sink.sh")
+                    )
+                }
             ),
         widget.Image(
             filename=screenshot,
@@ -621,11 +648,14 @@ def autostart():
 def moveclient(client):
     c = dict()
     c[u""] = ["Alacritty","alacritty","xterm"]
-    c[u""] = ["Navigator","Chromium","chromium"]
+    c[u""] = ["Navigator","firefox","Chromium","chromium"]
     c[u""] = ["pcmanfm","Pcmanfm","thunar"]
-    c[u""] = ["org.pwmt.zathura","Zathura","gimp","Gimp"]
+    c[u""] = ["org.pwmt.zathura","Zathura","gimp","Gimp","Mail","Thunderbird"]
     c[u""] = ["zoom ","Zoom"]
-    wm_class = client.window.get_wm_class()[0]
+    try:
+        wm_class = client.window.get_wm_class()[0]
+    except (KeyError,IndexError):
+        wm_class = client.window.get_wm_class()
     for k,v in c.items():
         if wm_class in c[k]:
             client.togroup(k,switch_group=True)
@@ -633,25 +663,34 @@ def moveclient(client):
 ###############################################################################
 #                          [START] STICKY WINDOW                              #
 ###############################################################################
-zenity = ''
+fl_window = []
 @hook.subscribe.client_new
 def screenshot(window):
-    global zenity
-    wm_class = window.window.get_wm_class()[0]
+    global fl_window
+    #wm_class = window.window.get_wm_class()
     w_name = window.window.get_name()
-    if wm_class in ("zenity","Zenity") or w_name in ("DM Screenshot Tool",):
-        zenity = window
-        return zenity
+    #if wm_class in ("zenity","Zenity","blueman-sendto","Blueman-sendto") or \
+    if w_name in ("DM Screenshot Tool","Bluetooth File Transfer"):
+        fl_window.append(window)
+        #zenity = window
+        #window.place(900,100,600,392,2,'FFFFFF')
+        return fl_window
 
 @hook.subscribe.setgroup
-def move_zenity():
-    zenity.togroup(qtile.current_group.name, switch_group=True)
+def move_to_current_group():
+    global fl_window
+    if fl_window:
+        for w in fl_window:
+            w.togroup(qtile.current_group.name)
+        #zenity.cmd_set_position(900,100) # Causing issues while movig from
+                                          # one screen to another
 
 @hook.subscribe.client_killed
 def killed(window):
-    global zenity
-    if window.name == 'DM Screenshot Tool':
-        del zenity
+    global fl_window
+    if window in fl_window:
+        w_index = fl_window.index(window)
+        del fl_window[w_index]
 ###############################################################################
 #                            [END] STICKY WINDOW                              #
 ###############################################################################
@@ -659,32 +698,37 @@ def killed(window):
 @hook.subscribe.client_new
 def spotify(window):
     time.sleep(0.07)
-    wm_class = window.window.get_wm_class()[0]
+    wm_class = window.window.get_wm_class()
     w_name = window.window.get_name()
     if wm_class in ("spotify",) or w_name in ("Spotify",):
         window.togroup("",switch_group=True)
 
 @hook.subscribe.client_new
 def firefox_videos(window):
-    wm_class = window.window.get_wm_class()[0]
+    wm_class = window.window.get_wm_class()
     w_name = window.window.get_name()
     if wm_class == "Toolkit" and w_name == "Picture-in-Picture":
         window.togroup("",switch_group=True)
-        window.toggle_fullscreen()
-        #window.toggle_maximize()
+        window.toggle_maximize()
+        #window.toggle_fullscreen()
 
 @hook.subscribe.client_new
-def float_to_front(qtile):
+def float_to_front(window):
     """
     Bring all floating windows of the group to front
     """
+    if window.floating:
+        window.cmd_focus()
+
+@hook.subscribe.client_focus
+def tofront(window):
     global floating_windows
     floating_windows = []
-    for window in qtile.currentGroup.windows:
-        if window.floating:
-            window.cmd_bring_to_front()
-            floating_windows.append(window)
-    floating_windows[-1].cmd_focus()
+    if window not in floating_windows and window.floating:
+        floating_windows.append(window)
+        for w in floating_windows:
+            #w.cmd_focus()
+            w.cmd_bring_to_front()
 
 dgroups_key_binder = None
 dgroups_app_rules = []  # type: List
